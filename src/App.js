@@ -66,11 +66,13 @@ export default class App extends Component {
         }
      
         this.createTransaction = this.createTransaction.bind(this)
-        this.refresh= this.refresh.bind(this)
+        this.refresh = this.refresh.bind(this)
+        this.validate = this.validate.bind(this)
     }
 
     createTransaction(title, link){
         this.setState({loading: true, modal : false})
+        console.log(this.state.web3.eth.accounts)
         const acc1 = this.state.web3.eth.accounts[0]
         const amount = this.state.web3.toWei(0.00000001, "ether")
         this.state.web3.personal.unlockAccount(acc1, 'Beareater05',10)
@@ -81,7 +83,7 @@ export default class App extends Component {
             const readme = atob(res.data.content) //convert base64 back to string
             const transac = {
                 title,
-                content : readme,
+                Description : "this is the test",
                 link : link
             }
             const transacObj = {
@@ -90,17 +92,36 @@ export default class App extends Component {
                 value : amount, 
                 data : this.state.web3.toHex(JSON.stringify(transac))
             }
-            this.state.web3.eth.sendTransaction(transacObj)
+            const txId = this.state.web3.eth.sendTransaction(transacObj)
+            console.log(this.state.web3.eth.getTransaction(txId))
+            console.log( "txID : " + txId )
+            this.validate()
             this.setState({loading : false})
             this.refresh()
         })
         
     }
 
+    validate(){
+        
+            if (this.state.web3.eth.mining) return;
+            console.log("== Pending transactions! Mining...")
+            this.state.web3.eth.start(1);
+  
+            this.state.web3.eth.stop()
+            console.log("mine")
+
+        
+      
+    }
+
     refresh(){
+        console.log(this.state.web3.eth)
+        console.log(this.state.web3)
         //get data from every single block
         const dumpArray = Array.from( new Array(this.state.web3.eth.blockNumber + 1).keys() )
         let blockData = dumpArray.map( element => this.state.web3.eth.getBlock(element) )
+        console.log(blockData)
         blockData = blockData.filter( element => element.transactions.length > 0 )
         blockData = blockData.map( element => element.transactions )
         //convert all block into single transaction chains
@@ -108,6 +129,7 @@ export default class App extends Component {
         blockData.forEach( block => block.forEach(trans => chains.push(trans)) )
         //get transaction data out
         chains = chains.map( transaction => JSON.parse(this.state.web3.toAscii(this.state.web3.eth.getTransaction(transaction).input)) )
+        console.log(chains)
         this.setState({storages : chains})
     }
 
